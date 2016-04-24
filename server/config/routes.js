@@ -29,19 +29,30 @@ module.exports = (app, express) => {
   // app.use(multiPartyMiddleware)
 
   app.post('/upload', multer().single('image'), (req, res) => {
+    const crop = JSON.parse(req.headers.crop);
+    console.log('crops ', crop)
+    console.log('crops ', typeof crop.x)
+    
     const file = req.file;
-    console.log('')
     // const files = req.files;
     console.log('file? ', file);
     // console.log('files?', files);
 
     return Jimp.read(file.buffer).then(function(image) {
-      console.log('got image!', image);
+      console.log('got image!', image.bitmap.width);
+      console.log('crop.width: ', crop.width, typeof crop.width)
+      console.log('image.bitmap.width: ', image.bitmap.width, typeof image.bitmap.width)
+      const width = crop.width * image.bitmap.width / 100
+      const height = crop.height * image.bitmap.height / 100
+      const x = crop.x * image.bitmap.width / 100
+      const y = crop.y * image.bitmap.width / 100
+      console.log('width: ', image.bitmap.width)
+      console.log('crop.width: ', crop.width)
+      console.log('width: ', width, height)
       return new Promise(function(resolve, reject){
         image.clone()
-          .resize(500, Jimp.AUTO)
-          .crop(100, 100, 100, 100)
-          // .quality(60)
+          .crop(x, y, width, height)
+          // .resize(160, 90)
           .getBuffer(file.mimetype, function(err, buffer) {
             if (err) {
               console.log('error getting buffer?')
@@ -72,8 +83,6 @@ module.exports = (app, express) => {
 
       return new Promise(function(resolve, reject) {
         s3.putObject(params, function(err, data) {
-          res.sendStatus(200);
-          return;
           if (err) {
             console.error('error uploading: ', err)
             reject(err);
